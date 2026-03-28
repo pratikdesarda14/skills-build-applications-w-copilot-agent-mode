@@ -19,7 +19,9 @@ from rest_framework import routers
 from .views import UserViewSet, TeamViewSet, ActivityViewSet, WorkoutViewSet, LeaderboardViewSet
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+
 from rest_framework.reverse import reverse
+import os
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
@@ -28,14 +30,25 @@ router.register(r'activities', ActivityViewSet)
 router.register(r'workouts', WorkoutViewSet)
 router.register(r'leaderboard', LeaderboardViewSet)
 
+
+# Helper to build full API URLs using $CODESPACE_NAME if available
+def build_full_url(request, name, format=None):
+    url = reverse(name, request=request, format=format)
+    codespace_name = os.environ.get('CODESPACE_NAME')
+    if codespace_name:
+        # Use https and codespace public URL, avoid certificate issues by not verifying in client
+        return f'https://{codespace_name}-8000.app.github.dev' + url
+    # Fallback to request.build_absolute_uri (localhost)
+    return request.build_absolute_uri(url)
+
 @api_view(['GET'])
 def api_root(request, format=None):
     return Response({
-        'users': reverse('user-list', request=request, format=format),
-        'teams': reverse('team-list', request=request, format=format),
-        'activities': reverse('activity-list', request=request, format=format),
-        'workouts': reverse('workout-list', request=request, format=format),
-        'leaderboard': reverse('leaderboard-list', request=request, format=format),
+        'users': build_full_url(request, 'user-list', format),
+        'teams': build_full_url(request, 'team-list', format),
+        'activities': build_full_url(request, 'activity-list', format),
+        'workouts': build_full_url(request, 'workout-list', format),
+        'leaderboard': build_full_url(request, 'leaderboard-list', format),
     })
 
 urlpatterns = [
